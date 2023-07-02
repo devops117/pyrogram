@@ -664,118 +664,91 @@ class Client(Methods):
                             print(e)
 
     def load_plugins(self):
-        if self.plugins:
-            plugins = self.plugins.copy()
 
-            for option in ["include", "exclude"]:
-                if plugins.get(option, []):
-                    plugins[option] = [
-                        (i.split()[0], i.split()[1:] or None)
-                        for i in self.plugins[option]
-                    ]
-        else:
+        if not self.plugins and not self.plugins.get("enabled"):
             return
 
-        if plugins.get("enabled", True):
-            root = plugins["root"]
-            include = plugins.get("include", [])
-            exclude = plugins.get("exclude", [])
+        plugins = self.plugins.copy()
 
-            count = 0
+        excluded_plugins = []
+        import_plugins = []
 
-            if not include:
-                for path in sorted(Path(root.replace(".", "/")).rglob("*.py")):
-                    module_path = '.'.join(path.parent.parts + (path.stem,))
-                    module = import_module(module_path)
+        root = plugins["root"]
+        include = plugins.get("include")
+        exclude = plugins.get("exclude")
 
-                    for name in vars(module).keys():
-                        # noinspection PyBroadException
-                        try:
-                            for handler, group in getattr(module, name).handlers:
-                                if isinstance(handler, Handler) and isinstance(group, int):
-                                    self.add_handler(handler, group)
+        if not include:
+            detected_packages = setuptools.find_packages(root)
+            detected_packages = [path.replace(".", "/") for path in detected_packages]
 
-                                    log.info('[{}] [LOAD] {}("{}") in group {} from "{}"'.format(
-                                        self.name, type(handler).__name__, name, group, module_path))
+            root = Path(root.replace(".", "/"))
+            detected_plugins = root.glob('**/*.py')
+            detected_plugins = filter(path.match, detected_packages) for path in detected_plugins
 
-                                    count += 1
-                        except Exception:
-                            pass
-            else:
-                for path, handlers in include:
-                    module_path = root + "." + path
-                    warn_non_existent_functions = True
+            import_plugins.extend(detected_plugins + detected_packages)
 
-                    try:
-                        module = import_module(module_path)
-                    except ImportError:
-                        log.warning('[%s] [LOAD] Ignoring non-existent module "%s"', self.name, module_path)
-                        continue
+        if include:
+            detected_packages = []
+            for path in include:
+                detected_modules.extend(setuptools.find_packages(path))
+            detected_packages = [path.replace(".", "/") for path in detected_packages]
 
-                    if "__path__" in dir(module):
-                        log.warning('[%s] [LOAD] Ignoring namespace "%s"', self.name, module_path)
-                        continue
+            root = Path(root.replace(".", "/"))
+            include = [Path(path.replace(".", "/")) for path in include]
+            include = map(root.joinpath, include)
 
-                    if handlers is None:
-                        handlers = vars(module).keys()
-                        warn_non_existent_functions = False
+            detected_plugins = path.glob('**/*.py') for path in include
+            detected_plugins = filter(path.match, detected_packages) for path in detected_plugins
 
-                    for name in handlers:
-                        # noinspection PyBroadException
-                        try:
-                            for handler, group in getattr(module, name).handlers:
-                                if isinstance(handler, Handler) and isinstance(group, int):
-                                    self.add_handler(handler, group)
+            import_plugins.extend(detected_plugins + detected_packages)
 
-                                    log.info('[{}] [LOAD] {}("{}") in group {} from "{}"'.format(
-                                        self.name, type(handler).__name__, name, group, module_path))
+        if exclude: # filter the import_plugins
+            detected_packages = []
+            for path in exclude:
+                detected_packages.extend(setuptools.find_package(root, include=path))
+            detected_packages = [path.replace(".", "/")]
 
-                                    count += 1
-                        except Exception:
-                            if warn_non_existent_functions:
-                                log.warning('[{}] [LOAD] Ignoring non-existent function "{}" from "{}"'.format(
-                                    self.name, name, module_path))
+            root = Path(root.replace(".", "/"))
+            exclude = Path(path.replace(".", "/")) for path in exclude]
+            exclude = map(root.joinpath, exclude)
 
-            if exclude:
-                for path, handlers in exclude:
-                    module_path = root + "." + path
-                    warn_non_existent_functions = True
+            detected_plugins = path.glob('**/*.py') for path in exclude
+            detected_plugins = filter(path.match, detected_packages) for path in detected_plugins
 
-                    try:
-                        module = import_module(module_path)
-                    except ImportError:
-                        log.warning('[%s] [UNLOAD] Ignoring non-existent module "%s"', self.name, module_path)
-                        continue
+            excluded_plugins.extend(detected_packages + detected_plugins)
 
-                    if "__path__" in dir(module):
-                        log.warning('[%s] [UNLOAD] Ignoring namespace "%s"', self.name, module_path)
-                        continue
+            import_plugins = filter(path.match, import_plugins) for path in import_plugins
 
-                    if handlers is None:
-                        handlers = vars(module).keys()
-                        warn_non_existent_functions = False
+        for module in exclude_modules:
+            log.warning('[{}] [LOAD] Ignoring excluded module "{}"', self.name, module)
 
-                    for name in handlers:
-                        # noinspection PyBroadException
-                        try:
-                            for handler, group in getattr(module, name).handlers:
-                                if isinstance(handler, Handler) and isinstance(group, int):
-                                    self.remove_handler(handler, group)
+        for plugin in import_plugins:
+            try:
+                module = import_module(plugin)
+            except ImportError:
+                log.warning('[{}] [LOAD] Ignoring non-existent module "{}"', self.name, path)
+                continue
 
-                                    log.info('[{}] [UNLOAD] {}("{}") from group {} in "{}"'.format(
-                                        self.name, type(handler).__name__, name, group, module_path))
+            functions = vars(module).keys()
+            added_handler = False
+            for function in functions:
+                try:
+                    for handler, group in getattr(module, function).handlers:
+                        if isinstance(handler, Handler) and isinstance(group, int):
+                            self.add_handler(handler, group)
+                            added_handler = True
 
-                                    count -= 1
-                        except Exception:
-                            if warn_non_existent_functions:
-                                log.warning('[{}] [UNLOAD] Ignoring non-existent function "{}" from "{}"'.format(
-                                    self.name, name, module_path))
+                            handler_name = type(handler).__name__
+                            log.info('[{}] [LOAD] {}("{}") in group {} from "{}"'.format(
+                                self.name, handler_name, function, group, module))
 
-            if count > 0:
-                log.info('[{}] Successfully loaded {} plugin{} from "{}"'.format(
-                    self.name, count, "s" if count > 1 else "", root))
-            else:
-                log.warning('[%s] No plugin loaded from "%s"', self.name, root)
+                except Exception:
+                    log.warning('[{}] [LOAD] Ignoring non-existent function "{}" from "{}"'.format(
+                        self.name, function, module))
+                    continue
+
+            if not added_handler:
+                log.warning('[{}] [LOAD] No handlers found in "{}"'.format(self.name, module))
 
     async def handle_download(self, packet):
         file_id, directory, file_name, in_memory, file_size, progress, progress_args = packet
