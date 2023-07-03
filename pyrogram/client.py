@@ -25,6 +25,7 @@ import platform
 import re
 import shutil
 import sys
+import setuptools # for finding packages for the smart plugins feature
 from concurrent.futures.thread import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from hashlib import sha256
@@ -664,8 +665,7 @@ class Client(Methods):
                             print(e)
 
     def load_plugins(self):
-
-        if not self.plugins and not self.plugins.get("enabled"):
+        if not self.plugins and self.plugins.get("enabled"):
             return
 
         plugins = self.plugins.copy()
@@ -683,7 +683,7 @@ class Client(Methods):
 
             root = Path(root.replace(".", "/"))
             detected_plugins = root.glob('**/*.py')
-            detected_plugins = filter(path.match, detected_packages) for path in detected_plugins
+            detected_plugins = [filter(path.match, detected_packages) for path in detected_plugins]
 
             import_plugins.extend(detected_plugins + detected_packages)
 
@@ -697,8 +697,8 @@ class Client(Methods):
             include = [Path(path.replace(".", "/")) for path in include]
             include = map(root.joinpath, include)
 
-            detected_plugins = path.glob('**/*.py') for path in include
-            detected_plugins = filter(path.match, detected_packages) for path in detected_plugins
+            detected_plugins = [path.glob('**/*.py') for path in include]
+            detected_plugins = [filter(path.match, detected_packages) for path in detected_plugins]
 
             import_plugins.extend(detected_plugins + detected_packages)
 
@@ -706,27 +706,27 @@ class Client(Methods):
             detected_packages = []
             for path in exclude:
                 detected_packages.extend(setuptools.find_package(root, include=path))
-            detected_packages = [path.replace(".", "/")]
+            detected_packages = [path.replace(".", "/") for path in detected_packages]
 
             root = Path(root.replace(".", "/"))
-            exclude = Path(path.replace(".", "/")) for path in exclude]
+            exclude = [Path(path.replace(".", "/")) for path in exclude]
             exclude = map(root.joinpath, exclude)
 
-            detected_plugins = path.glob('**/*.py') for path in exclude
-            detected_plugins = filter(path.match, detected_packages) for path in detected_plugins
+            detected_plugins = [path.glob('**/*.py') for path in exclude]
+            detected_plugins = [filter(path.match, detected_packages) for path in detected_plugins]
 
             excluded_plugins.extend(detected_packages + detected_plugins)
 
-            import_plugins = filter(path.match, import_plugins) for path in import_plugins
+            import_plugins = [filter(path.match, import_plugins) for path in import_plugins]
 
-        for module in exclude_modules:
-            log.warning('[{}] [LOAD] Ignoring excluded module "{}"', self.name, module)
+        for plugin in excluded_plugins:
+            log.warning('[{}] [LOAD] Ignoring excluded plugin "{}"', self.name, module)
 
         for plugin in import_plugins:
             try:
                 module = import_module(plugin)
             except ImportError:
-                log.warning('[{}] [LOAD] Ignoring non-existent module "{}"', self.name, path)
+                log.warning('[{}] [LOAD] Ignoring non-existent plugin "{}"', self.name, path)
                 continue
 
             functions = vars(module).keys()
