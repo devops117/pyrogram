@@ -677,29 +677,41 @@ class Client(Methods):
         include = plugins.get("include")
         exclude = plugins.get("exclude")
 
+        root = Path(root.replace(".", "/"))
+
         if not include:
             detected_packages = setuptools.find_packages(root)
-            detected_packages = [path.replace(".", "/") for path in detected_packages]
+            detected_plugins = list(root.glob('**/*.py'))
 
-            root = Path(root.replace(".", "/"))
-            detected_plugins = root.glob('**/*.py')
+            detected_packages = [path.replace(".", "/") for path in detected_packages]
 
             for path in detected_plugins:
                 plugin_in_package = any(map(path.match, detected_packages))
                 if plugin_in_package:
+                    print("AA")
                     detected_plugins.remove(path)
 
-            import_plugins.extend(detected_plugins + detected_packages)
+            detected_packages = [root.joinpath(path) for path in detected_packages]
+            detected_plugins = [root.joinpath(path) for path in detected_plugins]
+
+            detected_packages = map(str, detected_packages)
+            detected_plugins = map(str, detected_plugins)
+
+            detected_packages = [path.replace('/', '.') for path in detected_packages]
+            detected_plugins = [path.replace('/', '.') for path in detected_plugins]
+
+            import_plugins.extend(detected_packages)
+            import_plugins.extend(detected_plugins)
+            print(import_plugins)
 
         if include:
+            include = [Path(path.replace(".", "/")) for path in include]
+            include = [root.joinpath(path) for path in include]
+
             detected_packages = []
             for path in include:
                 detected_modules.extend(setuptools.find_packages(path))
             detected_packages = [path.replace(".", "/") for path in detected_packages]
-
-            root = Path(root.replace(".", "/"))
-            include = [Path(path.replace(".", "/")) for path in include]
-            include = [root.joinpath(path) for path in include)]
 
             detected_plugins = []
             for path in include:
@@ -710,15 +722,23 @@ class Client(Methods):
                 if plugin_in_package:
                     detected_plugins.remove(path)
 
-            import_plugins.extend(detected_plugins + detected_packages)
+            detected_packages = [root.joinpath(path) for path in detected_packages]
+            detected_plugins = [root.joinpath(path) for path in detected_plugins]
+
+            detected_packages = map(str, detected_packages)
+            detected_plugins = map(str, detected_plugins)
+
+            detected_packages = [path.replace('/', '.') for path in detected_packages]
+            detected_plugins = [path.replace('/', '.') for path in detected_plugins]
+
+            import_plugins.extend(detected_packages)
+            import_plugins.extend(detected_plugins)
 
         if exclude: # filter the import_plugins
             detected_packages = []
             for path in exclude:
                 detected_packages.extend(setuptools.find_package(root, include=path))
-            detected_packages = [path.replace(".", "/") for path in detected_packages]
 
-            root = Path(root.replace(".", "/"))
             exclude = [Path(path.replace(".", "/")) for path in exclude]
             exclude = [root.joinpath(path) for path in exclude]
 
@@ -731,16 +751,31 @@ class Client(Methods):
                 if plugin_in_package:
                     detected_plugins.remove(path)
 
-            excluded_plugins.extend(detected_packages + detected_plugins)
+            detected_packages = [root.joinpath(path) for path in detected_packages]
+            detected_plugins = [root.joinpath(path) for path in detected_plugins]
 
-        for plugin in excluded_plugins:
-            log.warning('[{}] [LOAD] Ignoring excluded plugin "{}"', self.name, module)
+            detected_packages = map(str, detected_packages)
+            detected_plugins = map(str, detected_plugins)
 
-        for plugin in import_plugins:
+            detected_packages = [path.replace('/', '.') for path in detected_packages]
+            detected_plugins = [path.replace('/', '.') for path in detected_plugins]
+
+            excluded_plugins.extend(detected_packages)
+            excluded_plugins.extend(detected_plugins)
+
+            for path in import_plugins:
+                is_excluded = any(map(path.match, excluded_packages))
+                if is_excluded:
+                    import_plugins.remove(path)
+
+        for path in excluded_plugins:
+            log.warning('[{}] [LOAD] Ignoring excluded plugin "{}"'.format(self.name, path))
+
+        for path in import_plugins:
             try:
-                module = import_module(plugin)
+                module = import_module(path)
             except ImportError:
-                log.warning('[{}] [LOAD] Ignoring non-existent plugin "{}"', self.name, path)
+                log.warning('[{}] [LOAD] Ignoring non-existent plugin "{}"'.format(self.name, path))
                 continue
 
             functions = vars(module).keys()
