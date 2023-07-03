@@ -26,6 +26,7 @@ import re
 import shutil
 import sys
 import setuptools # for finding packages for the smart plugins feature
+from itertools import filterfalse # for smart plugins feature
 from concurrent.futures.thread import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from hashlib import sha256
@@ -683,7 +684,7 @@ class Client(Methods):
 
             root = Path(root.replace(".", "/"))
             detected_plugins = root.glob('**/*.py')
-            detected_plugins = [filter(path.match, detected_packages) for path in detected_plugins]
+            detected_plugins = [filterfalse(path.match, detected_packages) for path in detected_plugins]
 
             import_plugins.extend(detected_plugins + detected_packages)
 
@@ -698,7 +699,7 @@ class Client(Methods):
             include = map(root.joinpath, include)
 
             detected_plugins = [path.glob('**/*.py') for path in include]
-            detected_plugins = [filter(path.match, detected_packages) for path in detected_plugins]
+            detected_plugins = [filterfalse(path.match, detected_packages) for path in detected_plugins]
 
             import_plugins.extend(detected_plugins + detected_packages)
 
@@ -713,11 +714,11 @@ class Client(Methods):
             exclude = map(root.joinpath, exclude)
 
             detected_plugins = [path.glob('**/*.py') for path in exclude]
-            detected_plugins = [filter(path.match, detected_packages) for path in detected_plugins]
+            detected_plugins = [filterfalse(path.match, detected_packages) for path in detected_plugins]
 
             excluded_plugins.extend(detected_packages + detected_plugins)
 
-            import_plugins = [filter(path.match, import_plugins) for path in import_plugins]
+            import_plugins = [filterfalse(path.match, import_plugins) for path in import_plugins]
 
         for plugin in excluded_plugins:
             log.warning('[{}] [LOAD] Ignoring excluded plugin "{}"', self.name, module)
