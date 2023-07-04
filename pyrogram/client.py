@@ -25,7 +25,7 @@ import platform
 import re
 import shutil
 import sys
-import setuptools # for finding packages for the smart plugins feature
+import pkgutil # for finding packages for the smart plugins feature
 from concurrent.futures.thread import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from hashlib import sha256
@@ -664,13 +664,39 @@ class Client(Methods):
                         except Exception as e:
                             print(e)
 
+    def _find_plugins(self, root: Path) -> list[str]:
+        found_plugins = []
+
+        detected_packages = pkgutil.iter_modules([root]) # path is supposed to be a list of paths
+        detected_packages = [package.name for package in detected_packages if package.ispkg]
+        detected_packages = [root.joinpath(path) for path in detected_packages]
+
+        detected_modules = list(root.glob('**/*.py'))
+
+        detected_packages = [str(path) for path in detected_packages]
+        detected_modules = [str(path) for path in detected_modules]
+
+        for path in detected_modules.copy(): # using remove changes the len
+            plugin_in_package = any(map(path.startswith, detected_packages))
+            if plugin_in_package:
+                detected_modules.remove(path)
+
+        detected_modules = [path.removesuffix(".py") for path in detected_modules]
+
+        detected_packages = [path.replace("/", ".") for path in detected_packages]
+        detected_modules = [path.replace("/", ".") for path in detected_modules]
+
+        found_plugins.extend(detected_packages)
+        found_plugins.extend(detected_modules)
+
+        return found_plugins
+
     def load_plugins(self):
         if not self.plugins and self.plugins.get("enabled"):
             return
 
         plugins = self.plugins.copy()
 
-        excluded_plugins = []
         import_plugins = []
 
         root = plugins["root"]
@@ -680,124 +706,59 @@ class Client(Methods):
         root = Path(root.replace(".", "/"))
 
         if not include:
-            detected_packages = setuptools.find_packages(root)
-            detected_plugins = list(root.glob('**/*.py'))
-
-            detected_packages = [path.replace(".", "/") for path in detected_packages]
-
-            for path in detected_plugins:
-                plugin_in_package = any(map(path.match, detected_packages))
-                if plugin_in_package:
-                    print("AA")
-                    detected_plugins.remove(path)
-
-            detected_packages = [root.joinpath(path) for path in detected_packages]
-            detected_plugins = [root.joinpath(path) for path in detected_plugins]
-
-            detected_packages = map(str, detected_packages)
-            detected_plugins = map(str, detected_plugins)
-
-            detected_packages = [path.replace('/', '.') for path in detected_packages]
-            detected_plugins = [path.replace('/', '.') for path in detected_plugins]
-
-            import_plugins.extend(detected_packages)
-            import_plugins.extend(detected_plugins)
-            print(import_plugins)
+            plugins = self._find_plugins(root)
+            import_plugins.extend(plugins)
 
         if include:
             include = [Path(path.replace(".", "/")) for path in include]
             include = [root.joinpath(path) for path in include]
 
-            detected_packages = []
+            include_plugins = []
             for path in include:
-                detected_modules.extend(setuptools.find_packages(path))
-            detected_packages = [path.replace(".", "/") for path in detected_packages]
+                plugins = self._find_plugins(path)
+                include_plugins.extend(plugins)
 
-            detected_plugins = []
-            for path in include:
-                detected_plugins.extend(path.glob('**/*.py'))
-
-            for path in detected_plugins:
-                plugin_in_package = any(map(path.match, detected_packages))
-                if plugin_in_package:
-                    detected_plugins.remove(path)
-
-            detected_packages = [root.joinpath(path) for path in detected_packages]
-            detected_plugins = [root.joinpath(path) for path in detected_plugins]
-
-            detected_packages = map(str, detected_packages)
-            detected_plugins = map(str, detected_plugins)
-
-            detected_packages = [path.replace('/', '.') for path in detected_packages]
-            detected_plugins = [path.replace('/', '.') for path in detected_plugins]
-
-            import_plugins.extend(detected_packages)
-            import_plugins.extend(detected_plugins)
+            import_plugins.extend(plugins)
 
         if exclude: # filter the import_plugins
-            detected_packages = []
-            for path in exclude:
-                detected_packages.extend(setuptools.find_package(root, include=path))
-
             exclude = [Path(path.replace(".", "/")) for path in exclude]
             exclude = [root.joinpath(path) for path in exclude]
 
-            detected_plugins = []
-            for path in exclude:
-                detected_plugins.extend(path.glob('**/*.py'))
-
-            for path in detected_plugins:
-                plugin_in_package = any(map(path.match, detected_packages))
-                if plugin_in_package:
-                    detected_plugins.remove(path)
-
-            detected_packages = [root.joinpath(path) for path in detected_packages]
-            detected_plugins = [root.joinpath(path) for path in detected_plugins]
-
-            detected_packages = map(str, detected_packages)
-            detected_plugins = map(str, detected_plugins)
-
-            detected_packages = [path.replace('/', '.') for path in detected_packages]
-            detected_plugins = [path.replace('/', '.') for path in detected_plugins]
-
-            excluded_plugins.extend(detected_packages)
-            excluded_plugins.extend(detected_plugins)
+            exclude = [str(path) for path in exclude]
 
             for path in import_plugins:
-                is_excluded = any(map(path.match, excluded_packages))
+                is_excluded = any(map(path.startswith, exclude))
                 if is_excluded:
                     import_plugins.remove(path)
-
-        for path in excluded_plugins:
-            log.warning('[{}] [LOAD] Ignoring excluded plugin "{}"'.format(self.name, path))
+                    log.warning('[{}] [LOAD] Ignoring excluded plugin "{}"'.format(self.name, path))
 
         for path in import_plugins:
             try:
                 module = import_module(path)
             except ImportError:
-                log.warning('[{}] [LOAD] Ignoring non-existent plugin "{}"'.format(self.name, path))
+                log.warning('[{}] [LOAD] Ignoring non-existent module "{}"'.format(self.name, path))
                 continue
 
-            functions = vars(module).keys()
+            functions = inspect.getmembers(module, inspect.isfunction)
             added_handler = False
-            for function in functions:
+            for function_name, function in functions:
                 try:
-                    for handler, group in getattr(module, function).handlers:
+                    for handler, group in function.handlers:
                         if isinstance(handler, Handler) and isinstance(group, int):
                             self.add_handler(handler, group)
                             added_handler = True
 
                             handler_name = type(handler).__name__
                             log.info('[{}] [LOAD] {}("{}") in group {} from "{}"'.format(
-                                self.name, handler_name, function, group, module))
+                                self.name, handler_name, function_name, group, function.__module__))
 
-                except Exception:
-                    log.warning('[{}] [LOAD] Ignoring non-existent function "{}" from "{}"'.format(
-                        self.name, function, module))
+                except AttributeError:
+                    log.warning('[{}] [LOAD] Ignoring non-handler function "{}" from "{}"'.format(
+                        self.name, function_name, function.__module__))
                     continue
 
             if not added_handler:
-                log.warning('[{}] [LOAD] No handlers found in "{}"'.format(self.name, module))
+                log.warning('[{}] [LOAD] No handlers found in "{}"'.format(self.name, path))
 
     async def handle_download(self, packet):
         file_id, directory, file_name, in_memory, file_size, progress, progress_args = packet
