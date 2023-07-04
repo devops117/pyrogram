@@ -710,27 +710,29 @@ class Client(Methods):
             import_plugins.extend(plugins)
 
         if include:
-            include = [Path(path.replace(".", "/")) for path in include]
+            include = [path.replace(".", "/") for path in include]
             include = [root.joinpath(path) for path in include]
 
             include_plugins = []
             for path in include:
                 plugins = self._find_plugins(path)
-                include_plugins.extend(plugins)
-
-            import_plugins.extend(plugins)
+                if plugins:
+                    import_plugins.extend(plugins)
+                else: # we assume it is a module
+                    path = [str(path).replace("/", ".")]
+                    import_plugins.extend(path)
 
         if exclude: # filter the import_plugins
-            exclude = [Path(path.replace(".", "/")) for path in exclude]
+            exclude = [path.replace(".", "/") for path in exclude]
             exclude = [root.joinpath(path) for path in exclude]
 
-            exclude = [str(path) for path in exclude]
+            exclude = [str(path).replace("/", ".") for path in exclude]
 
             for path in import_plugins:
                 is_excluded = any(map(path.startswith, exclude))
                 if is_excluded:
                     import_plugins.remove(path)
-                    log.warning('[{}] [LOAD] Ignoring excluded plugin "{}"'.format(self.name, path))
+                    log.warning('[{}] [LOAD] Ignoring excluded module "{}"'.format(self.name, path))
 
         for path in import_plugins:
             try:
