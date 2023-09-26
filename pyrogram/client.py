@@ -692,7 +692,7 @@ class Client(Methods):
         return found_plugins
 
     def load_plugins(self):
-        if not self.plugins and self.plugins.get("enabled"):
+        if not self.plugins:
             return
 
         plugins = self.plugins.copy()
