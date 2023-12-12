@@ -19,14 +19,14 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Generate API
-        run: |
-          make api
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip poetry
           make dev-install
+
+      - name: Generate API
+        run: |
+          make api
 
       - name: Run tests
         run: |

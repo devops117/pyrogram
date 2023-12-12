@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pyrocatto-pyrogram"
-version = "2.0.107.post4"
+version = "2.0.107.post5"
 description="A fork of pyrogram with simplified plugin loader and more"
 authors = ["Dan <dan@pyrogram.org>"]
 maintainers = ["devops117 <devops117.main@protonmail.com>"]
