@@ -68,6 +68,12 @@ If you'd like to support Pyrogram, you can consider:
 pip3 install pyrogram
 ```
 
+### With speedups (like tgcrypto):
+
+``` bash
+pip3 install pyrogram[speedups]
+```
+
 ### Resources
 
 - Check out the docs at https://docs.pyrogram.org to learn more about Pyrogram, get started right
