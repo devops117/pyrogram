@@ -38,4 +38,4 @@ clean-api:
 		pyrogram/raw/functions pyrogram/raw/types
 
 tests:
-	tox
+	poetry run tox
