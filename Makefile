@@ -1,42 +1,41 @@
-VENV := venv
-PYTHON := $(VENV)/bin/python
-HOST = $(shell ifconfig | grep "inet " | tail -1 | cut -d\  -f2)
-TAG = v$(shell grep -E '__version__ = ".*"' pyrogram/__init__.py | cut -d\" -f2)
+CURRENT_VERSION = $(shell cat version.txt)
 
-RM := rm -rf
+.PHONY: all install publish api new-release new-tag delete-tag new-version clean-api tests
 
-.PHONY: venv clean-build clean-api clean api build
+all: | api install
 
-venv:
-	$(RM) $(VENV)
-	python3 -m venv $(VENV)
-	$(PYTHON) -m pip install -U pip wheel setuptools
-	$(PYTHON) -m pip install -U -r requirements.txt -r dev-requirements.txt
-	@echo "Created venv with $$($(PYTHON) --version)"
+install:
+	poetry install
 
-clean-build:
-	$(RM) *.egg-info build dist
+dev-install:
+	poetry install --with dev
 
-clean-api:
-	$(RM) pyrogram/errors/exceptions pyrogram/raw/all.py pyrogram/raw/base pyrogram/raw/functions pyrogram/raw/types
-
-clean:
-	make clean-build
-	make clean-api
+publish:
+	poetry build
+	poetry publish
 
 api:
-	cd compiler/api && ../../$(PYTHON) compiler.py
-	cd compiler/errors && ../../$(PYTHON) compiler.py
+	cd compiler/api && poetry run python compiler.py
+	cd compiler/errors && poetry run python compiler.py
 
-build:
-	make clean
-	$(PYTHON) setup.py sdist
-	$(PYTHON) setup.py bdist_wheel
+new-tag:
+	git tag $(CURRENT_VERSION)
+	git push origin $(CURRENT_VERSION)
 
-tag:
-	git tag $(TAG)
-	git push origin $(TAG)
+delete-tag:
+	git tag -d $(CURRENT_VERSION)
+	git push origin -d $(CURRENT_VERSION)
 
-dtag:
-	git tag -d $(TAG)
-	git push origin -d $(TAG)
+new-release: | new-tag publish
+
+new-version:
+	sed -E 's/^"(\w|\d|\.)+"/"${V}"/' -i version.txt
+	sed -E 's/version = "(\w|\d|\.)+"/version = "${V}"/' -i pyproject.toml
+	sed -E 's/__version__ = "(\w|\d|\.)+"/__version__ = "${V}"/' -i pyrogram/__init__.py
+
+clean-api:
+	rm -rf pyrogram/errors/exceptions pyrogram/raw/all.py pyrogram/raw/base \
+		pyrogram/raw/functions pyrogram/raw/types
+
+tests:
+	poetry run tox
