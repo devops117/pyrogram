@@ -1,8 +1,11 @@
 CURRENT_VERSION = $(shell cat version.txt)
 
-.PHONY: all install publish api new-release new-tag delete-tag new-version clean-api tests
+.PHONY: all speedups-install publish api new-release new-tag delete-tag new-version clean-api tests
 
-all: | api install
+all: | api speedups-install
+
+speedups-install:
+	poetry install -E speedups
 
 install:
 	poetry install
