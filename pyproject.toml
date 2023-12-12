@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pyrocatto-pyrogram"
-version = "2.0.108"
+version = "2.0.108.post1"
 description="A fork of pyrogram with simplified plugin loader and more"
 authors = ["Dan <dan@pyrogram.org>"]
 maintainers = ["devops117 <devops117.main@protonmail.com>"]
@@ -33,8 +33,7 @@ classifiers=[
 ]
 
 [tool.poetry.urls]
-Tracker = "https://github.com/pyrogram/pyrogram/issues"
-Community = "https://t.me/pyrogram"
+Tracker = "https://github.com/pyrocatto/pyrocatto-pyrogram/issues"
 
 [tool.poetry.dependencies]
 python = "^3.10"

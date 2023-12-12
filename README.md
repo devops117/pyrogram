@@ -1,6 +1,6 @@
 <p align="center">
-    <a href="https://github.com/pyrogram/pyrogram">
-        <img src="https://docs.pyrogram.org/_static/pyrogram.png" alt="Pyrogram" width="128">
+    <a href="https://github.com/pyrocatto/pyrocatto-pyrogram">
+        <img src="https://avatars.githubusercontent.com/u/146078840" alt="Pyrocatto-Pyrogram" width="128">
     </a>
     <br>
     <b>Telegram MTProto API Framework for Python</b>
@@ -13,18 +13,11 @@
         Documentation
     </a>
     •
-    <a href="https://docs.pyrogram.org/releases">
-        Releases
-    </a>
-    •
-    <a href="https://t.me/pyrogram">
-        News
-    </a>
 </p>
 
-## Pyrogram
+## Pyrocatto-Pyrogram
 
-> Elegant, modern and asynchronous Telegram MTProto API framework in Python for users and bots
+> A fork with improvements over the good ol' Elegant, and asynchronous Telegram MTProto API framework in Python for users and bots
 
 ``` python
 from pyrogram import Client, filters
@@ -40,13 +33,9 @@ async def hello(client, message):
 app.run()
 ```
 
-**Pyrogram** is a modern, elegant and asynchronous [MTProto API](https://docs.pyrogram.org/topics/mtproto-vs-botapi)
-framework. It enables you to easily interact with the main Telegram API through a user account (custom client) or a bot
-identity (bot API alternative) using Python.
-
 ### Support
 
-If you'd like to support Pyrogram, you can consider:
+If you'd like to support the parent project, [Pyrogram](https://github.com/pyrogram), you can consider:
 
 - [Become a GitHub sponsor](https://github.com/sponsors/delivrance).
 - [Become a LiberaPay patron](https://liberapay.com/delivrance).
@@ -65,16 +54,16 @@ If you'd like to support Pyrogram, you can consider:
 ### Installing
 
 ``` bash
-pip3 install pyrogram
+pip3 install pyrocatto-pyrogram
 ```
 
 ### With speedups (like tgcrypto):
 
 ``` bash
-pip3 install pyrogram[speedups]
+pip3 install pyrocatto-pyrogram[speedups]
 ```
 
-### Resources
+### Resources (from the parent project)
 
 - Check out the docs at https://docs.pyrogram.org to learn more about Pyrogram, get started right
 away and discover more in-depth material for building your client applications.
