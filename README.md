@@ -1,21 +1,4 @@
-<p align="center">
-    <a href="https://github.com/pyrocatto/pyrocatto-pyrogram">
-        <img src="https://avatars.githubusercontent.com/u/146078840" alt="Pyrocatto-Pyrogram" width="128">
-    </a>
-    <br>
-    <b>Telegram MTProto API Framework for Python</b>
-    <br>
-    <a href="https://pyrogram.org">
-        Homepage
-    </a>
-    •
-    <a href="https://docs.pyrogram.org">
-        Documentation
-    </a>
-    •
-</p>
-
-## Pyrocatto-Pyrogram
+# Pyrocatto-Pyrogram
 
 > A fork with improvements over the good ol' Elegant, and asynchronous Telegram MTProto API framework in Python for users and bots
 
