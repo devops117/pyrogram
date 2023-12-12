@@ -11,7 +11,8 @@ dev-install:
 	poetry install --with dev
 
 publish:
-	poetry publish --build
+	poetry build
+	poetry publish
 
 api:
 	cd compiler/api && poetry run python compiler.py

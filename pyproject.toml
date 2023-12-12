@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pyrocatto-pyrogram"
-version = "2.0.107.post2"
+version = "2.0.107.post4"
 description="A fork of pyrogram with simplified plugin loader and more"
 authors = ["Dan <dan@pyrogram.org>"]
 maintainers = ["devops117 <devops117.main@protonmail.com>"]
@@ -48,7 +48,7 @@ optional = true
 pytest = "^7.4.3"
 pytest-asyncio = "^0.23.2"
 pytest-cov = "^4.1.0"
-twine = "^4.0.2"
+tox-poetry-installer = {extras = ["poetry"], version = "^0.10.3"}
 
 [tool.poetry.group.speedups]
 optional = true
