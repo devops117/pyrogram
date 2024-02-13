@@ -29,7 +29,7 @@ delete-tag:
 	git tag -d $(CURRENT_VERSION)
 	git push origin -d $(CURRENT_VERSION)
 
-new-release: | new-tag publish
+new-release: | publish new-tag
 
 new-version:
 	sed -E 's/^"(\w|\d|\.)+"/"${V}"/' -i version.txt
