@@ -24,9 +24,9 @@ jobs:
           python -m pip install --upgrade pip poetry
           make dev-install
 
-      - name: Generate API
+      - name: Build package
         run: |
-          make api
+          make build
 
       - name: Run tests
         run: |
