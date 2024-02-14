@@ -1,13 +1,20 @@
 [tool.poetry]
 name = "pyrocatto"
-version = "2.0.108.post3"
+version = "2.0.114"
 description="A fork of pyrogram with simplified plugin loader and more"
 authors = ["Dan <dan@pyrogram.org>"]
 maintainers = ["devops117 <devops117.main@protonmail.com>"]
 license="LGPLv3"
 readme = "README.md"
 packages = [{include = "pyrogram"}]
-include = ["pyrogram/py.typed"]
+include = [
+    "pyrogram/py.typed",
+    "pyrogram/errors/exceptions",
+    "pyrogram/raw/functions",
+    "pyrogram/raw/types",
+    "pyrogram/raw/base",
+    "pyrogram/raw/all.py"
+]
 repository="https://github.com/pyrocatto/pyrocatto"
 documentation="https://docs.pyrogram.org"
 keywords= ["telegram", "chat", "messenger", "mtproto", "client"]
